@@ -124,7 +124,7 @@ const PostMealForm = () => {
     <div className="flex flex-col md:flex-row justify-between p-8 min-h-screen bg-gray-100 space-y-6 md:space-y-0">
       {/* Post Meal Form Section */}
       <div className="w-full md:w-1/2 bg-white shadow-lg rounded-lg p-6 space-y-6 max-h-[70vh] overflow-y-auto">
-        <h1 className="text-3xl font-semibold text-center text-indigo-700 mb-8">Post a New Meal</h1>
+        <h1 className="text-3xl font-semibold text-center text-sky-600 mb-8">Post a New Meal</h1>
         <form onSubmit={handleSubmit} encType="multipart/form-data" className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700">Meal Name:</label>
@@ -209,7 +209,7 @@ const PostMealForm = () => {
           <div className="flex justify-center">
             <button
               type="submit"
-              className="w-full py-3 px-4 bg-indigo-600 text-white font-semibold rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full py-3 px-4 bg-sky-600 text-white font-semibold rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               Post Meal
             </button>
@@ -219,7 +219,7 @@ const PostMealForm = () => {
 
       {/* Meal List Section */}
       <div className="w-full md:w-1/2 bg-white shadow-lg rounded-lg p-6 space-y-6 max-h-[70vh] overflow-y-auto">
-        <h2 className="text-3xl font-semibold text-center text-indigo-700 mb-8">Meals List</h2>
+        <h2 className="text-3xl font-semibold text-center text-sky-600 mb-8">Meals List</h2>
         <div className="overflow-x-auto">
           <table className="min-w-full table-auto">
             <thead>

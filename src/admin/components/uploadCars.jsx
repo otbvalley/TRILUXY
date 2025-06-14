@@ -75,7 +75,7 @@ function UploadCars() {
           {imagePreview && (
             <img
               src={imagePreview}
-              alt="Image Preview"
+              alt="Preview"
               className="mt-3 max-w-xs rounded-md transition-all duration-300 ease-in-out transform hover:scale-110"
             />
           )}
