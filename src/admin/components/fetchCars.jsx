@@ -3,79 +3,96 @@ import React, { useEffect, useState } from 'react';
 const FetchCars = () => {
   const [cars, setCars] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
-  // Fetching car data from the API
-  useEffect(() => {
-    const fetchCars = async () => {
+  const getCars = async () => {
+    try {
+      const res = await fetch('http://localhost:5000/api/auth/cars');
+      if (!res.ok) throw new Error('Failed to fetch cars');
+      const data = await res.json();
+      setCars(data);
+    } catch (err) {
+      console.error('Error fetching cars:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm("Are you sure you want to delete this car?")) {
       try {
-        const response = await fetch('https://triluxy-backend-1.onrender.com/api/auth/get-cars'); // Adjust the API URL accordingly
-        if (!response.ok) {
-          throw new Error('Failed to fetch cars');
-        }
-        const data = await response.json();
-        setCars(data);
-        setLoading(false);
-      } catch (err) {
-        setError(err.message);
-        setLoading(false);
+        await fetch(`http://localhost:5000/api/auth/cars/${id}`, { method: "DELETE" });
+        setCars(cars.filter(car => car._id !== id));
+      } catch (error) {
+        console.error("Error deleting car:", error);
       }
-    };
+    }
+  };
 
-    fetchCars();
+  useEffect(() => {
+    getCars();
   }, []);
 
-  if (loading) {
-    return <div className="text-center text-xl text-sky-500">Loading cars...</div>;
-  }
-
-  if (error) {
-    return <div className="text-center text-xl text-red-500">Error: {error}</div>;
-  }
+  if (loading) return <p>Loading...</p>;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 bg-sky-50">
-      <h1 className="text-3xl font-semibold text-center text-sky-600 mb-6">Available Cars</h1>
-
-      {/* Table to display car data */}
-      <div className="overflow-x-auto">
-        <table className="min-w-full table-auto border-collapse bg-white shadow-lg rounded-lg">
-          <thead className="bg-sky-500 text-white">
-            <tr>
-              <th className="px-4 py-2 text-left">Car Image</th>
-              <th className="px-4 py-2 text-left">Make & Model</th>
-              <th className="px-4 py-2 text-left">Year</th>
-              <th className="px-4 py-2 text-left">Location</th>
-              <th className="px-4 py-2 text-left">Price per Day</th>
-              <th className="px-4 py-2 text-left">Availability</th>
+    <div className="overflow-x-auto">
+      <table className="w-full border-collapse bg-white shadow rounded">
+        <thead className="bg-sky-500 text-white">
+          <tr>
+            <th>Image</th>
+            <th>Make & Model</th>
+            <th>Year</th>
+            <th>Pickup</th>
+            <th>Dropoff</th>
+            <th>Seats</th>
+            <th>Luggage</th>
+            <th>Fuel</th>
+            <th>Transmission</th>
+            <th>Mileage Limit</th>
+            <th>Price/day</th>
+            <th>Booking Status</th>
+            <th>Payment Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {cars.map((car) => (
+            <tr key={car._id} className="border-t">
+              <td>
+                <img
+                  src={`http://localhost:5000/${car.carImage}`}
+                  alt={`${car.make} ${car.model}`}
+                  className="w-20 h-20 object-cover rounded"
+                />
+              </td>
+              <td>{car.make} {car.model}</td>
+              <td>{car.year}</td>
+              <td>{car.location?.pickup}</td>
+              <td>{car.location?.dropoff}</td>
+              <td>{car.seats}</td>
+              <td>{car.luggageCapacity} bags</td>
+              <td>{car.fuelType}</td>
+              <td>{car.transmission}</td>
+              <td>{car.mileageLimitPerDay} km/day</td>
+              <td>{car.pricePerDay} {car.currency}</td>
+              <td>{car.booked ? 'Booked' : 'Available'}</td>
+              <td>
+                {car.paymentStatus === 'paid' ? '✅ Paid' : 
+                 car.paymentStatus === 'pending' ? '⌛ Pending' : 
+                 '❌ Failed'}
+              </td>
+              <td>
+                <button
+                  onClick={() => handleDelete(car._id)}
+                  className="text-red-500 hover:underline"
+                >
+                  Delete
+                </button>
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            {cars.map((car) => (
-              <tr key={car._id} className="border-t hover:bg-sky-100">
-                <td className="px-4 py-2">
-                  <img
-                    src={car ? car.carImage : 'https://via.placeholder.com/40'}
-                    alt={car.model}
-                    className="w-16 h-16 object-cover rounded-md"
-                  />
-                </td>
-                <td className="px-4 py-2">{car.make} {car.model}</td>
-                <td className="px-4 py-2">{car.year}</td>
-                <td className="px-4 py-2">{car.location}</td>
-                <td className="px-4 py-2">${car.pricePerDay}</td>
-                <td className="px-4 py-2 text-center">
-                  <span
-                    className={`px-3 py-1 rounded-full ${car.available ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}
-                  >
-                    {car.available ? 'Available' : 'Not Available'}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 };

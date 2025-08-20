@@ -1,140 +1,167 @@
 import React, { useState } from 'react';
-import axios from 'axios';
 
 function UploadCars() {
-  const [make, setMake] = useState('');
-  const [model, setModel] = useState('');
-  const [year, setYear] = useState('');
-  const [location, setLocation] = useState('');
-  const [pricePerDay, setPrice] = useState('');
-  const [carImage, setCarImage] = useState(null);
-  const [imagePreview, setImagePreview] = useState('');
+  const [formData, setFormData] = useState({
+    make: '',
+    model: '',
+    year: '',
+    transmission: 'Automatic', // default valid value
+    fuelType: 'Petrol', // default valid value
+    seats: '',
+    luggageCapacity: '',
+    locationPickup: '',
+    locationDropoff: '',
+    mileageLimitPerDay: '',
+    pricePerDay: '',
+    currency: 'USD',
+    taxesAndFees: '',
+    gps: '',
+    childSeat: '',
+    additionalDriver: '',
+    description: '',
+    available: true
+  });
 
-  const handleFileChange = (event) => {
-    const selectedFile = event.target.files[0];
-    setCarImage(selectedFile);
+  const [carImages, setCarImages] = useState([]);
+  const [imagePreviews, setImagePreviews] = useState([]);
 
-    const fileURL = URL.createObjectURL(selectedFile);
-    setImagePreview(fileURL);
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
   };
 
-  const handleSubmit = async (event) => {
-    event.preventDefault(); // Prevent the default form submission behavior
-    
-    if (!make || !model || !year || !location || !pricePerDay || !carImage) {
-      alert('Please fill all fields and upload an image.');
+  const handleFileChange = (e) => {
+    const files = Array.from(e.target.files);
+    setCarImages(files);
+    setImagePreviews(files.map(file => URL.createObjectURL(file)));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (carImages.length === 0) {
+      alert('Please upload at least one image.');
       return;
     }
-  
-    const formdata = new FormData();
-    formdata.append('car', carImage);  // Changed 'carImage' to 'car' to match multer's field name
-    formdata.append('make', make);
-    formdata.append('model', model);
-    formdata.append('year', year);
-    formdata.append('pricePerDay', pricePerDay);
-    formdata.append('location', location);
-  
+
+    const data = new FormData();
+    Object.entries(formData).forEach(([key, value]) => {
+      if (key === 'locationPickup') {
+        data.append('location[pickup]', value);
+      } else if (key === 'locationDropoff') {
+        data.append('location[dropoff]', value);
+      } else if (['gps', 'childSeat', 'additionalDriver'].includes(key)) {
+        data.append(`extraCharges[${key}]`, value);
+      } else {
+        data.append(key, value);
+      }
+    });
+
+    // Append images — backend expects "carImages"
+    carImages.forEach(file => data.append('carImages', file));
+
     try {
-      const response = await axios.post('https://triluxy-backend-1.onrender.com/api/auth/add-car', formdata, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+      const res = await fetch('http://localhost:5000/api/auth/admin/add-car', {
+        method: 'POST',
+        body: data
       });
-      console.log(response.data);
+
+      if (!res.ok) throw new Error('Failed to add car');
+      alert('Car added successfully!');
+      setFormData({
+        make: '', model: '', year: '', transmission: 'Automatic',
+        fuelType: 'Petrol', seats: '', luggageCapacity: '',
+        locationPickup: '', locationDropoff: '', mileageLimitPerDay: '',
+        pricePerDay: '', currency: 'USD', taxesAndFees: '',
+        gps: '', childSeat: '', additionalDriver: '',
+        description: '', available: true
+      });
+      setCarImages([]);
+      setImagePreviews([]);
     } catch (err) {
-      console.log('Error uploading car:', err);
+      console.error(err);
+      alert('Error uploading car.');
     }
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-8 bg-white shadow-lg rounded-lg">
-      <h1 className="text-3xl font-semibold text-center text-sky-600 mb-6 animate__fadeIn">
-        Upload a New Car
-      </h1>
-
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        <div className="animate__fadeIn">
-          <label className="block text-lg text-sky-600 font-medium mb-2">Make</label>
+    <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+      {/* Text & Number Inputs */}
+      {[
+        { name: 'make' }, { name: 'model' }, { name: 'year', type: 'number' },
+        { name: 'seats', type: 'number' }, { name: 'luggageCapacity', type: 'number' },
+        { name: 'locationPickup', label: 'Pickup Location' },
+        { name: 'locationDropoff', label: 'Dropoff Location' },
+        { name: 'mileageLimitPerDay', type: 'number' },
+        { name: 'pricePerDay', type: 'number' },
+        { name: 'currency' },
+        { name: 'taxesAndFees', type: 'number' },
+        { name: 'gps', label: 'GPS Charge', type: 'number' },
+        { name: 'childSeat', label: 'Child Seat Charge', type: 'number' },
+        { name: 'additionalDriver', label: 'Additional Driver Charge', type: 'number' },
+        { name: 'description' }
+      ].map(({ name, label, type }) => (
+        <div key={name} className="col-span-1">
+          <label className="block font-medium capitalize">{label || name}</label>
           <input
-            type="text"
-            value={make}
-            onChange={(event) => setMake(event.target.value)}
-            placeholder="Enter car make"
-            className="w-full p-3 border border-sky-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all duration-300 ease-in-out transform hover:scale-105"
+            type={type || 'text'}
+            name={name}
+            value={formData[name]}
+            onChange={handleChange}
+            className="w-full p-2 border rounded"
+            required={['make', 'model', 'year', 'pricePerDay', 'luggageCapacity', 'mileageLimitPerDay'].includes(name)}
           />
         </div>
+      ))}
 
-        <div className="animate__fadeIn">
-          <label className="block text-lg text-sky-600 font-medium mb-2">Car Image</label>
-          <input
-            type="file"
-            accept="image/jpeg, image/png, image/jpg"
-            onChange={handleFileChange}
-            className="w-full p-3 border border-sky-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all duration-300 ease-in-out transform hover:scale-105"
-          />
-          {imagePreview && (
-            <img
-              src={imagePreview}
-              alt="Preview"
-              className="mt-3 max-w-xs rounded-md transition-all duration-300 ease-in-out transform hover:scale-110"
-            />
-          )}
-        </div>
+      {/* Transmission Dropdown */}
+      <div className="col-span-1">
+        <label className="block font-medium">Transmission</label>
+        <select name="transmission" value={formData.transmission} onChange={handleChange} className="w-full p-2 border rounded">
+          <option value="Automatic">Automatic</option>
+          <option value="Manual">Manual</option>
+        </select>
+      </div>
 
-        <div className="animate__fadeIn">
-          <label className="block text-lg text-sky-600 font-medium mb-2">Car Model</label>
-          <input
-            type="text"
-            value={model}
-            onChange={(event) => setModel(event.target.value)}
-            placeholder="Enter car model"
-            className="w-full p-3 border border-sky-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all duration-300 ease-in-out transform hover:scale-105"
-          />
-        </div>
+      {/* Fuel Type Dropdown */}
+      <div className="col-span-1">
+        <label className="block font-medium">Fuel Type</label>
+        <select name="fuelType" value={formData.fuelType} onChange={handleChange} className="w-full p-2 border rounded">
+          <option value="Petrol">Petrol</option>
+          <option value="Diesel">Diesel</option>
+          <option value="Electric">Electric</option>
+          <option value="Hybrid">Hybrid</option>
+        </select>
+      </div>
 
-        <div className="animate__fadeIn">
-          <label className="block text-lg text-sky-600 font-medium mb-2">Year</label>
-          <input
-            type="number"
-            value={year}
-            onChange={(event) => setYear(event.target.value)}
-            placeholder="Enter production year"
-            className="w-full p-3 border border-sky-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all duration-300 ease-in-out transform hover:scale-105"
-          />
-        </div>
+      {/* Image Upload */}
+      <div className="col-span-1">
+        <label className="block font-medium">Car Images</label>
+        <input type="file" accept="image/*" multiple onChange={handleFileChange} required />
+        {imagePreviews.length > 0 && (
+          <div className="flex gap-2 mt-2 flex-wrap">
+            {imagePreviews.map((src, i) => (
+              <img key={i} src={src} alt="Preview" className="w-24 h-24 object-cover rounded" />
+            ))}
+          </div>
+        )}
+      </div>
 
-        <div className="animate__fadeIn">
-          <label className="block text-lg text-sky-600 font-medium mb-2">Car Location</label>
-          <input
-            type="text"
-            value={location}
-            onChange={(event) => setLocation(event.target.value)}
-            placeholder="Enter city location"
-            className="w-full p-3 border border-sky-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all duration-300 ease-in-out transform hover:scale-105"
-          />
-        </div>
+      {/* Availability Checkbox */}
+      <div className="flex items-center col-span-1">
+        <input type="checkbox" name="available" checked={formData.available} onChange={handleChange} />
+        <label className="ml-2">Available</label>
+      </div>
 
-        <div className="animate__fadeIn">
-          <label className="block text-lg text-sky-600 font-medium mb-2">Car Booking Price</label>
-          <input
-            type="number"
-            value={pricePerDay}
-            onChange={(event) => setPrice(event.target.value)}
-            placeholder="Enter booking price"
-            className="w-full p-3 border border-sky-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all duration-300 ease-in-out transform hover:scale-105"
-          />
-        </div>
-
-        <div className="col-span-2 text-center animate__fadeIn">
-          <button
-            type="submit"
-            className="px-6 py-3 text-white bg-sky-500 rounded-md hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all duration-300 ease-in-out transform hover:scale-110"
-          >
-            Submit
-          </button>
-        </div>
-      </form>
-    </div>
+      {/* Submit */}
+      <div className="col-span-2">
+        <button type="submit" className="bg-sky-500 text-white px-4 py-2 rounded hover:bg-sky-600">
+          Submit
+        </button>
+      </div>
+    </form>
   );
 }
 
